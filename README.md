@@ -1,6 +1,18 @@
 # BlobInsight
 
-The main goal of this page is to outline the process or steps required to develop set of blob life cycle policies which are based on actual usage patterns.
+This repository aims to guide you through creating blob lifecycle policies rooted in real usage patterns. We've included an exploratory notebook as an example. This notebook offers fundamental steps and queries to help you grasp how your storage account is accessed. However, the notebook is given 'as is' and isn't meant for direct production use. Think of it as a starting point for deeper analysis or further exploration.
+
+## Abstract
+
+If you're an Azure customer with significant storage bills, implementing blob lifecycle policies can help manage costs. While our current policies can handle basic tasks, like deleting or moving a blob after a set number of days since its creation or last access, they don't always reflect real usage patterns. For instance, they don't factor in the size of the blob.
+
+It's worth noting that those responsible for creating and overseeing lifecycle management policies might not be well-versed in access patterns. They need tools that make it easy to manage blobs and reduce storage costs.
+
+Identifying these access patterns takes time. It's also crucial to grasp the storage cost model and its various tiers. For a comprehensive overview of the cost model, check out this [page](https://azure.microsoft.com/en-us/pricing/details/storage/blobs/#pricing).
+
+### Cloud providers and storage
+
+The following table provide quick view on the way cloud providers address the problem.
 
 | Attribute | Google Cloud Storage | Amazon S3 | Azure Blob Storage |
 |-----------|----------------------|-----------|--------------------|
@@ -18,17 +30,24 @@ The [gcp Auto class]([Title](https://cloud.google.com/storage/docs/autoclass)) a
 
 The __key differentiator__ in my opinion is from [aws]([Title](https://docs.aws.amazon.com/AmazonS3/latest/userguide/intro-lifecycle-rules.html)) as it allows for rules based on size.
 
-## Abstract
+### Azure storage - Cost model
 
-Azure customers with very high storage bills, will benefit by applying blob life cycle policies to their storage accounts. Our current policies can address rudimentary scenarios for example: delete or move a blob after a certain number of days since it was created or accessed. However, these policies are not based on actual usage patterns, and therefore are not optimal. Size for example is never considered.
+Storage costs are influenced by several factors: monthly data volume, the variety and frequency of operations, data transfer expenses, and the redundancy option you pick. Each tier—Hot, Cool, Cold, and Archive—has its own pricing for data volume, operations, transfers, and redundancy.
 
-It is important to consider that the personas creating and managing lifecycle management policies are often not familiar with access patterns and need efficient and straightforward ways to govern and manage the blobs and optimize the storage billing.
+Let's say you've got 1TB of storage. You'd spend roughly:
+
+- $20 in Hot
+- $10 in Cool
+- $4.5 in Cold
+- A little over $2 in Archive
+
+But remember, the total isn't just about storage size. It also factors in operations and any data transfers. So, just looking at storage savings when shifting between tiers isn't the whole picture. Deciding when to move data between tiers should be based on how often you access it. For instance, data retrieval is free in the Hot tier but comes at a cost in other tiers.
 
 ## Data points
 
-Finding usage patterns requires more than one data point. The inventory only shows a snap shot of the current state. The content of the inventory is not enough to determine usage patterns. Diagnostic logs provide detailed timeline of all requests made to storage accounts. Since the logs does not contain the meta-data in the inventory, we would need both data points. The inventory and the logs.
+To figure out usage patterns, a single data point isn't enough. The inventory gives us just a glimpse of the present situation. By itself, it doesn't tell us much about how things are being used. However, diagnostic logs offer a detailed history of all interactions with storage accounts. But since these logs don't have the inventory's meta-data, we need both: the inventory and the logs.
 
-To save on cost, and since one cannot join inventory in log analytics, it is recommended to use archiving to storage accounts from the diagnostic settings. This will allow us to keep the logs for a longer period of time, and still be able to query them.
+To keep costs down and because you can't merge inventory in log analytics, it's a good idea to archive to storage accounts using diagnostic settings. This way, we can store logs longer and still search through them when needed.
 
 ## Data collection
 
@@ -60,7 +79,7 @@ Diagnostic logs (classic) can be configured via the portal, for more information
 
 ### Data movement
 
-Assuming the inventory is saved as parquet, the diagnostic logs, are saved as json lines, in an append_block blob type. This prevents us from directly reading the content using Spark. Therefore we need to move the logs to an adls-gen2 account and while we do the move, we can also convert the json lines to parquet.
+Assuming the inventory is saved as parquet, the diagnostic logs, are saved as json lines, in an append_block blob type. This setup stops us from directly accessing the content with Spark. So, we'll need to move the logs to an adls-gen2 account and while we do the move, we can also convert the json lines to parquet.
 
 There are multiple options to do this:
 
@@ -69,7 +88,7 @@ There are multiple options to do this:
 - Python notebook
 - Spark job
 
-The sample implementation would use Azure Data Factory. Using a copy activity with ```json``` and ```parquet``` as sink. Copy all logs from the storage account to the data lake. This sample does not address recurrence analysis, if you require to perform these analysis on periodic basis, it would be a good practice to automate the logs copy and deletion from the source storage.
+The sample implementation would use Azure Data Factory. Using a copy activity with ```json``` and ```parquet``` as sink. Copy all logs from the storage account to the data lake. This example doesn't cover repeated analysis. If you need to do this regularly, consider automating the copying and deleting of logs from the original storage..
 
 ## Tools
 
@@ -78,4 +97,8 @@ Our current suggestion is to leverage Azure databricks for its ease of operation
 
 ## Conclusion
 
-Each storage account will have its own usage patterns, and therefore the policies will be different. The process described in this document and with the provided Databricks notebook, will allow you to better understand the access patterns and create policies that are based on actual usage patterns. Both this readme and the notebook are provided as is and as a baseline for further analytics or other research.
+Every storage account has its own way of being used, so policies will differ. This guide, along with the Databricks notebook, helps you get a grip on how your storage is accessed and lets you set policies based on real use. Just a heads-up: we're providing this guide and the notebook 'as is' — they're a starting point for deeper analysis or other work you might want to do.
+
+### Additional thoughts
+
+- The current blob lifecycle policies do not support size-based criteria. If your blobs vary significantly in size, this can impact potential savings. For instance, if blobs have similar access patterns but differ in size, it might be more efficient to use a single large blob container with distinct policies, rather than applying the same policy to smaller-sized blobs.
