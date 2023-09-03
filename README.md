@@ -96,6 +96,14 @@ The sample implementation would use Azure Data Factory. Using a copy activity wi
 
 Data Factory was used as it provides no-code alternative and for the sake of one-time data movement it provide a simple solution. We selected Azure Databricks for its ease of operational and keeping your spark cluster to the minimum, as you can create a single node cluster for the purpose of these analytics.
 
+## Taking your first steps
+
+__1. Data Prep - Enabling logs and Blob Inventory:__ Enabling your diagnostic logs should be done as preliminary step, we need logs that span over a long period of time - the minimum is a month, however since some of the rules and policies span beyond 30 days, extending the logs to 3 or 6 months would provide better understanding of your blob's access patterns. The Blob Inventory setup can be once you have a month or so worth of logs.
+
+__2. Data Movement:__ Use Azure Data Factory or other tool of your choice. It is assumed that both data points exist in the same data lake and as parquet files.
+
+__3. Data Analytics:__ Create or reuse a Azure Databricks workspace. Getting started we suggest to start with a single node cluster. Import the notebook from this repository and follow the steps mentioned in the notebook.
+
 ## Conclusion
 
 Every storage account has its own way of being used, so policies will differ. This guide, along with the Databricks notebook, helps you get a grip on how your storage is accessed and lets you set policies based on real use. Just a heads-up: we're providing this guide and the notebook 'as is' — they're a starting point for deeper analysis or other work you might want to do.
