@@ -111,3 +111,7 @@ Every storage account has its own way of being used, so policies will differ. Th
 ### Additional thoughts
 
 - The current blob lifecycle policies do not support size-based criteria. If your blobs vary significantly in size, this can impact potential savings. For instance, if blobs have similar access patterns but differ in size, it might be more efficient to use a large blob container with distinct policies for the large blobs, rather than applying the same policy to smaller-sized blobs.
+
+### Acknowledgments
+
+A special thanks to [Olga Molocenco](https://github.com/olmoloce) for her invaluable contributions during the research phase. Her insights and expertise greatly enriched this guide.
