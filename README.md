@@ -12,34 +12,38 @@ Identifying these access patterns takes time. It's also crucial to grasp the sto
 
 ### Cloud providers and storage
 
-As context, lets look at the way cloud providers address the problem.
+As context, lets look at the way cloud providers address the problem. The following table describes which attributes of stored objects/blobs can be used, when authoring storage policies:
 
-| Attribute | Google Cloud Storage | Amazon S3 | Azure Blob Storage |
-|-----------|----------------------|-----------|--------------------|
-| Size | No | Yes | No |
-| Last Modified Date | Yes | Yes | Yes |
-| Last Accessed Date | Yes (via Autoclass) | No | Yes (with last access time tracking enabled) |
-| Object Age | Yes | Yes | Yes |
-| Storage Class | Yes  | Yes | Yes |
-| Object Prefix | Yes | Yes | Yes |
-| Object Tags | No | Yes | Yes (via blob index tags) |
-| Versioning | No | Yes | Yes |
-| Automatic Transitioning | Yes - Autoclass | No | Yes - Blob life cycle Policies |
+| Attribute | Azure Blob Storage | Amazon S3 | Google Cloud Storage |
+|-----------|:------------------:|:---------:|:--------------------:|
+| Storage Class | ✅ yes | ✅ yes | ✅ yes |
+| Object Age | ✅ yes | ✅ yes | ✅ yes |
+| Object Prefix | ✅ yes | ✅ yes | ✅ yes |
+| Last Modified Date | ✅ yes | ✅ yes | ✅ yes |
+| Last Accessed Date | ✅ yes (with last access time tracking enabled) | ❌ no | ✅ yes (via Autoclass) |
+| Automatic Transitioning | ✅ yes (Blob life cycle Policies) | ❌ no | ✅ yes (via Autoclass) |
+| Object Tags | ✅ yes (via blob index tags) | ✅ yes | ❌ no |
+| Versioning | ✅ yes | ✅ yes | ❌ no |
+| Size | ❌ no | ✅ yes | ❌ no |
 
-The [gcp Auto class]([Title](https://cloud.google.com/storage/docs/autoclass)) allows customers that are uncertain of the access patterns to leverage the auto-class, this will not work for all use cases.
-
-The __key differentiator__ in my opinion is from [aws]([Title](https://docs.aws.amazon.com/AmazonS3/latest/userguide/intro-lifecycle-rules.html)) as it allows for rules based on size.
+[Google Cloud Storage Autoclass](https://cloud.google.com/storage/docs/autoclass) allows customers that are uncertain of the access patterns to leverage the auto-class, this will not work for all use cases. The __key differentiator__ in my opinion is from [AWS S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/intro-lifecycle-rules.html), as it allows for rules based on size.
 
 ### Azure storage - Cost model
 
-Storage costs are influenced by several factors: monthly data volume, the variety and frequency of operations, data transfer expenses, and the redundancy option you pick. Each tier—Hot, Cool, Cold, and Archive—has its own pricing for data volume, operations, transfers, and redundancy.
+Storage costs are influenced by several factors: monthly data volume, the variety and frequency of operations, data transfer expenses, and the redundancy option you pick. Each tier—Hot, Cool, Cold, and Archive—has its own pricing for data volume, operations, transfers, and redundancy:
+
+> [*Redundancy*](https://learn.microsoft.com/en-us/azure/storage/common/storage-redundancy) (LRS, ZRS, GRS, GRS-RA, GZRS etc.) means how often (and where) your data gets replicated; for example, LRS (locally redundant storage) give you 'only' three copies in a specific Azure region, most certainly in a single availability zone, while GZRS gives you 6 replicas (across 4 availability zones / 2 regions).
+>
+> You can use [*access tiers*](https://learn.microsoft.com/en-us/azure/storage/blobs/access-tiers-overview) (hot/cool/cold/archive) to allow Azure to optimize storage, based your access pattern, i.e. how frequently and how urgently you need to access your data. For example, data which is rarely read can be stored in a cool, cold or archive tier, saving you money.
 
 Let's say you've got 1TB of storage. You'd spend roughly:
 
-- $20 in Hot
-- $10 in Cool
-- $4.5 in Cold
-- A little over $2 in Archive
+| Storage tier | Approx. monthly price for 1TB |
+| ------------ | ----------------------------: |
+| Hot          |                       $ 20.00 |
+| Cool         |                       $ 10.00 |
+| Cold         |                        $ 4.50 |
+| Archive      |                       $  2.00 |
 
 But remember, the total isn't just about storage size. It also factors in operations and any data transfers. So, just looking at storage savings when shifting between tiers isn't the whole picture. Deciding when to move data between tiers should be based on how often you access it. For instance, data retrieval is free in the Hot tier but comes at a [cost](https://azure.microsoft.com/en-us/pricing/details/storage/blobs/#pricing) in other tiers. The cost model also include penalties for moving data between tiers if performed within specific set of time periods.
 
@@ -55,16 +59,16 @@ The following diagram illustrates the high level data flow for the inventory and
 
 ![Data Flow](media/2023-07-20-10-40-01.png)
 
-1. The storage that requires monitoring
+1. The storage account to be analyzed
 2. Output of the blob inventory rules
-3. Diagnostic logs (blob level)
+3. Diagnostic logs (at individual blob level)
 4. A periodic process that would move both data points to a shared data lake
 5. Existing or designated data lake
 6. Analytic process that would join the two data points and produce the usage patterns
 
 ### Blob Inventory
 
-Blob Inventory rules can be setup via the portal or using specific REST calls. This [document](https://learn.microsoft.com/en-us/azure/storage/blobs/blob-inventory) describe the multiple options to setup rules. In very high level you can create two types of periodic rules, daily or weekly, and you can capture the inventory as parquet or csv. For the later research steps it would advisable to use the parquet format. While you can leave the schema as is, it is also recommended to log only required meta-data. This will result in smaller files.
+Blob Inventory rules can be setup via the portal or using specific REST calls. This [document](https://learn.microsoft.com/en-us/azure/storage/blobs/blob-inventory) describes various options to setup rules. At very high level, you can create two types of periodic rules, daily or weekly. Inventory is captured in either Apache Parquet or CSV format. For subsequent research steps, it would advisable to use Parquet. While you can leave the schema as is, it is also recommended to log only required meta-data, resulting in smaller files.
 
 __Key points:__
 
@@ -79,7 +83,7 @@ Diagnostic logs (classic) can be configured via the portal, for more information
 
 ### Data movement
 
-Assuming the inventory is saved as parquet, the diagnostic logs, are saved as json lines, in an append_block blob type. This setup prevents us from directly accessing the content with Spark. So, we'll need to move the logs to an adls-gen2 account and while we do the move, we can also convert the json lines to parquet.
+Assuming the inventory is saved as parquet, the diagnostic logs, are saved as json lines, in an append_block blob type. This setup prevents us from directly accessing the content with Spark. So, we'll need to move the logs to an ADLS-gen2 account and while we do the move, we can also convert the json lines to parquet.
 
 There are multiple options to do this:
 
