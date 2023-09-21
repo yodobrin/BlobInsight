@@ -20,13 +20,13 @@ As context, lets look at the way cloud providers address the problem. The follow
 | Object Age | ✅ yes | ✅ yes | ✅ yes |
 | Object Prefix | ✅ yes | ✅ yes | ✅ yes |
 | Last Modified Date | ✅ yes | ✅ yes | ✅ yes |
-| Last Accessed Date | ✅ yes (with last access time tracking enabled) | ❌ no | ✅ yes (via Autoclass) |
-| Automatic Transitioning | ✅ yes (Blob life cycle Policies) | ❌ no | ✅ yes (via Autoclass) |
+| Last Accessed Date | ✅ yes (with last access time tracking enabled) | ✅ yes | ✅ yes (via Autoclass) |
+| Automatic Transitioning | ✅ yes (Blob life cycle Policies) | ✅ yes (Intelligent-Tiering) | ✅ yes (via Autoclass) |
 | Object Tags | ✅ yes (via blob index tags) | ✅ yes | ❌ no |
 | Versioning | ✅ yes | ✅ yes | ❌ no |
 | Size | ❌ no | ✅ yes | ❌ no |
 
-[Google Cloud Storage Autoclass](https://cloud.google.com/storage/docs/autoclass) allows customers that are uncertain of the access patterns to leverage the auto-class, this will not work for all use cases. The __key differentiator__ in my opinion is from [AWS S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/intro-lifecycle-rules.html), as it allows for rules based on size.
+[Google Cloud Storage Autoclass](https://cloud.google.com/storage/docs/autoclass) allows customers that are uncertain of the access patterns to leverage the auto-class, this will not work for all use cases. The __key differentiator__ in my opinion is from [AWS S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/intro-lifecycle-rules.html), as it allows for rules based on size. Another source - [intelligent-tiering](https://aws.amazon.com/s3/storage-classes/intelligent-tiering/) and [server-access-logging](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-server-access-logging.html).
 
 ### Azure storage - Cost model
 
